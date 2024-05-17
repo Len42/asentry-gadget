@@ -150,7 +150,7 @@ def fetch_latest_data() -> list:
     """ Fetch the latest set of "interesting" objects from NASA JPL. """
     wrapped_text.show('Fetching data')
     # Only fetch a few of the most threatening objects.
-    ps_min = -3 # threat level cutoff
+    ps_min = -3 # minimum threat level
     sRequest = f"https://ssd-api.jpl.nasa.gov/sentry.api?ps-min={ps_min}"
     ##sRequest = f"https://lenp.net/x"
     with requests.get(sRequest) as response:
@@ -192,7 +192,6 @@ try:
 
     # Initialize the internet connection
     if radio.ipv4_address is None:
-        print(f"Connecting to {os.getenv('WIFI_SSID')}")
         wrapped_text.show(f"Connecting to {os.getenv('WIFI_SSID')}")
         radio.connect(os.getenv('WIFI_SSID'), os.getenv('WIFI_PASSWORD'))
     requests = adafruit_requests.Session(socketpool.SocketPool(radio), ssl.create_default_context())
@@ -202,7 +201,6 @@ try:
     # TODO: loop
 
     latest_objects = fetch_latest_data()
-    #wrapped_text.show(latest_objects[0]['fullname']) # DEBUG
 
     # TODO: check_for_updates()
     updates = latest_objects
