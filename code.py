@@ -151,11 +151,11 @@ def fetch_latest_data() -> list:
     wrapped_text.show('Fetching data')
     # Only fetch a few of the most threatening objects.
     ps_min = -3 # minimum threat level
-    sRequest = f"https://ssd-api.jpl.nasa.gov/sentry.api?ps-min={ps_min}"
-    ##sRequest = f"https://lenp.net/x"
+    sRequest = f'https://ssd-api.jpl.nasa.gov/sentry.api?ps-min={ps_min}'
+    ##sRequest = f'https://lenp.net/x'
     with requests.get(sRequest) as response:
         if response.status_code != 200:
-            raise Exception(f"Bad HTTP response: {response.status_code} {response.reason.decode()}")
+            raise Exception(f'Bad HTTP response: {response.status_code} {response.reason.decode()}')
         else:
             results = response.json()
     if (results['signature']['source'] != 'NASA/JPL Sentry Data API'
@@ -163,15 +163,51 @@ def fetch_latest_data() -> list:
         raise Exception('Unexpected data format')
     return results['data']
 
-# TODO: check_for_updates()
+def fetch_dummy_data() -> list:
+    """ Return a dummy data set that has one object missing from the actual (recent) data """
+    return [
+        {"ps_max":"-3.01","des":"1979 XB","id":"bJ79X00B","last_obs":"1979-12-15","v_inf":"23.7606234552547","diameter":"0.66","ts_max":"0","range":"2056-2113","ps_cum":"-2.71","ip":"8.515158e-07","h":"18.54","last_obs_jd":"2444222.5","fullname":"(1979 XB)","n_imp":4},
+        {"n_imp":300,"fullname":"(2000 SG344)","last_obs_jd":"2451820.5","ip":"0.002743395186","h":"24.79",
+         "ps_cum":"-2.78","range":"2069-2122","ts_max":"0","diameter":"0.037","v_inf":"1.35802744453748","last_obs":"2000-10-03","des":"2000 SG344","id":"bK00SY4G","ps_max":"-3.13"},
+        {"ps_max":"-2.86","last_obs":"2008-05-09","id":"bK08J03L","des":"2008 JL3","diameter":"0.029","v_inf":"8.41901237821941","ps_cum":"-2.86","range":"2027-2122","ts_max":"0","ip":"0.0001658147615","h":"25.31","fullname":"(2008 JL3)","last_obs_jd":"2454595.5","n_imp":44},
+        {"ps_max":"-2.79","id":"bK07F03T","last_obs":"2007-03-21","des":"2007 FT3","v_inf":"17.065343203718","diameter":"0.341","ps_cum":"-2.63","ts_max":"0","range":"2024-2119","ip":"8.635192e-07","h":"19.97","fullname":"(2007 FT3)","last_obs_jd":"2454180.5","n_imp":89},
+        {"ps_max":"-1.59","last_obs":"2020-10-3.80160","id":"a0101955","des":"101955","v_inf":"5.9916984432395","diameter":"0.49","ps_cum":"-1.41","ts_max":None,"range":"2178-2290","ip":"0.000571699999999996","h":"20.63","fullname":"101955 Bennu (1999 RQ36)","last_obs_jd":"2459126.3016","n_imp":157},
+        {"ip":"2.859e-05","h":"17.94","n_imp":1,"last_obs_jd":"2459551.5","fullname":"29075 (1950 DA)","des":"29075","last_obs":"2021-12-03","id":"a0029075","ps_max":"-2.05","range":"2880-2880","ts_max":None,"ps_cum":"-2.05","diameter":"1.3","v_inf":"14.10"}
+    ]
+
+def check_for_updates(saved_objects: list, latest_objects: list) -> list:
+    """ Compare the saved data to the latest data and alert the user to any
+        new objects or objects with increased threat levels.
+        Return a list of new or increased threat objects.
+    """
+    changed_objects = []
+    for object in latest_objects:
+        found = [ obj for obj in saved_objects if obj['id'] == object['id'] ]
+        if len(found) == 0:
+            # new object
+            object['is_new'] = True
+            changed_objects.append(object)
+        else:
+            saved_object = found[0]
+            if (float(object['ps_cum']) > float(saved_object['ps_cum'])
+                    or (object['ts_max'] != None and saved_object['ts_max'] == None)
+                    or (object['ts_max'] != None and saved_object['ts_max'] != None
+                        and float(object['ts_max']) > float(saved_object['ts_max']))):
+                # object threat level has increased
+                object['is_new'] = False
+                changed_objects.append(object)
+    return changed_objects
 
 def display_updates(objects: list):
     wrapped_text.set_text('')
     nl = ''
     for object in objects:
-        # TODO
-        wrapped_text.add_text(f'{nl}{object['fullname']}')
+        wrapped_text.add_text(nl)
         nl = '\n'
+        wrapped_text.add_text(f"{'NEW' if object['is_new'] else 'INCREASED'} THREAT!\n")
+        wrapped_text.add_text(f"{object['fullname']}\n")
+        wrapped_text.add_text(f"Year: {object['range']}\n")
+        wrapped_text.add_text(f"Threat level: {object['ts_max']}")
     wrapped_text.refresh()
 
 # MAIN
@@ -183,10 +219,10 @@ try:
     wrapped_text.show('asentry')
 
     # Load the alert sound
-    wav = None
+    alert_wav = None
     try:
-        with open("alert.wav", "rb") as wave_file:
-            wav = audiocore.WaveFile(wave_file)
+        with open('alert.wav', 'rb') as wave_file:
+            alert_wav = audiocore.WaveFile(wave_file)
     except:
         pass # Not an error if the file is missing
 
@@ -196,20 +232,21 @@ try:
         radio.connect(os.getenv('WIFI_SSID'), os.getenv('WIFI_PASSWORD'))
     requests = adafruit_requests.Session(socketpool.SocketPool(radio), ssl.create_default_context())
 
-    # TODO: fetch initial data
+    # Fetch and display initial data
+    saved_objects = fetch_dummy_data() # DEBUG
+    # TODO: display initial data for the first period?
 
     # TODO: loop
 
     latest_objects = fetch_latest_data()
 
-    # TODO: check_for_updates()
-    updates = latest_objects
+    updates = check_for_updates(saved_objects, latest_objects)
 
     if not updates:
         wrapped_text.show('No new threats')
     else:
         display_updates(updates)
-        # TODO: play alert sound
+        # TODO: Play alert sound
 
     # DEBUG
     wait_scroll_text()
