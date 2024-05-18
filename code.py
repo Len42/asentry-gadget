@@ -33,6 +33,8 @@ import audiocore
 
 pin_switch = board.GP14
 
+check_interval = 1 * 60 * 60 # 1 hour in seconds
+
 # SSD1306 display setup
 nice_font = FONT
 line_spacing = 12 # in pixels
@@ -120,11 +122,16 @@ class WrappedTextDisplay(displayio.Group):
         display.refresh()
 
 
-def wait_button_scroll_text(button: keypad.Keys):
+def wait_button_scroll_text(button: keypad.Keys, max_time: int = 0):
+    """ Wait while scrolling the text display, until the button is pressed
+        or max_time seconds has passed (if specified). """
     button.events.clear()
     scroll_time = ticks_add(ticks_ms(),
                             5000 if wrapped_text.on_last_line() else 1000)
+    timeout = ticks_add(ticks_ms(), max_time * 1000)
     while True:
+        if max_time and ticks_less(timeout, ticks_ms()):
+            break
         if (event := button.events.get()) and event.pressed:
             break
         if wrapped_text.max_offset() > 0 and ticks_less(scroll_time, ticks_ms()):
@@ -229,6 +236,8 @@ try:
     except:
         pass # Not an error if the file is missing
 
+    # TODO: Initialize I2S audio output
+
     # Initialize the internet connection
     if radio.ipv4_address is None:
         wrapped_text.show(f"Connecting to {os.getenv('WIFI_SSID')}")
@@ -236,25 +245,22 @@ try:
     requests = adafruit_requests.Session(socketpool.SocketPool(radio), ssl.create_default_context())
 
     # Fetch and display initial data
-    saved_objects = fetch_dummy_data() # DEBUG
+    saved_objects = fetch_dummy_data() # DEBUG fetch_latest_data()
     # TODO: display initial data for the first period?
 
-    # TODO: loop
-
-    latest_objects = fetch_latest_data()
-
-    updates = check_for_updates(saved_objects, latest_objects)
-
-    if not updates:
-        wrapped_text.show('No new threats')
-    else:
-        display_updates(updates)
-        # TODO: Play alert sound
-
-    # DEBUG
-    wait_button_scroll_text(button)
-    # while True:
-    #     pass
+    while True:
+        latest_objects = fetch_latest_data()
+        updates = check_for_updates(saved_objects, latest_objects)
+        saved_objects = latest_objects
+        if not updates:
+            wrapped_text.show('No new threats')
+            # Wait for a while then check again
+            wait_button_scroll_text(button, check_interval)
+        else:
+            display_updates(updates)
+            # TODO: Play alert sound
+            # Wait and don't check again until the button is pressed
+            wait_button_scroll_text(button)
 
 except Exception as e:
     #print(f"Error: {e}")
