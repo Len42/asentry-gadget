@@ -31,6 +31,7 @@ from adafruit_ticks import ticks_add, ticks_less, ticks_ms
 from terminalio import FONT
 import audiocore
 
+pin_switch = board.GP14
 
 # SSD1306 display setup
 nice_font = FONT
@@ -119,32 +120,25 @@ class WrappedTextDisplay(displayio.Group):
         display.refresh()
 
 
-# def wait_button_scroll_text():
-#     led.switch_to_output(True)
-#     keys.events.clear()
-#     deadline = ticks_add(ticks_ms(),
-#             5000 if wrapped_text.on_last_line() else 1000)
-#     while True:
-#         #DEBUG
-#         #if (event := keys.events.get()) and event.pressed:
-#         #    break
-#         if wrapped_text.max_offset() > 0 and ticks_less(deadline, ticks_ms()):
-#             wrapped_text.scroll_next_line()
-#             wrapped_text.refresh()
-#             deadline = ticks_add(deadline,
-#                     5000 if wrapped_text.on_last_line() else 1000)
-#     led.value = False
-
-# TODO: must be interruptible, or run "until"
-def wait_scroll_text():
-    deadline = ticks_add(ticks_ms(),
-            5000 if wrapped_text.on_last_line() else 1000)
+def wait_button_scroll_text(button):
+    button.events.clear()
+    timeout = ticks_add(ticks_ms(), 5000 if wrapped_text.on_last_line() else 1000)
     while True:
-        if wrapped_text.max_offset() > 0 and ticks_less(deadline, ticks_ms()):
+        if (event := button.events.get()) and event.pressed:
+            break
+        if wrapped_text.max_offset() > 0 and ticks_less(timeout, ticks_ms()):
             wrapped_text.scroll_next_line()
             wrapped_text.refresh()
-            deadline = ticks_add(deadline,
-                    5000 if wrapped_text.on_last_line() else 1000)
+            timeout = ticks_add(timeout, 5000 if wrapped_text.on_last_line() else 1000)
+
+# TODO: must be interruptible, or run "until"
+# def wait_scroll_text():
+#     timeout = ticks_add(ticks_ms(), 5000 if wrapped_text.on_last_line() else 1000)
+#     while True:
+#         if wrapped_text.max_offset() > 0 and ticks_less(timeout, ticks_ms()):
+#             wrapped_text.scroll_next_line()
+#             wrapped_text.refresh()
+#             timeout = ticks_add(timeout, 5000 if wrapped_text.on_last_line() else 1000)
 
 def fetch_latest_data() -> list:
     """ Fetch the latest set of "interesting" objects from NASA JPL. """
@@ -214,6 +208,9 @@ def display_updates(objects: list):
 try:
     print("asentry started")
 
+    # Initialize an input pin for the button using keypad.Keys
+    button = keypad.Keys((pin_switch,), value_when_pressed=False)
+
     # Initialize the wrapped-text display
     display.root_group = wrapped_text = WrappedTextDisplay()
     wrapped_text.show('asentry')
@@ -249,7 +246,7 @@ try:
         # TODO: Play alert sound
 
     # DEBUG
-    wait_scroll_text()
+    wait_button_scroll_text(button)
     while True:
         pass
 
