@@ -31,8 +31,10 @@ from adafruit_ticks import ticks_add, ticks_less, ticks_ms
 from terminalio import FONT
 import audiocore
 
+# Define which GPIO pin the button is connected to
 pin_switch = board.GP14
 
+# Define the interval between data updates
 check_interval = 1 * 60 * 60 # 1 hour in seconds
 
 # SSD1306 display setup
@@ -124,7 +126,8 @@ class WrappedTextDisplay(displayio.Group):
 
 def wait_button_scroll_text(button: keypad.Keys, max_time: int = 0):
     """ Wait while scrolling the text display, until the button is pressed
-        or max_time seconds has passed (if specified). """
+        or max_time seconds has passed (if specified).
+    """
     button.events.clear()
     scroll_time = ticks_add(ticks_ms(),
                             5000 if wrapped_text.on_last_line() else 1000)
@@ -140,18 +143,8 @@ def wait_button_scroll_text(button: keypad.Keys, max_time: int = 0):
             scroll_time = ticks_add(scroll_time,
                                 5000 if wrapped_text.on_last_line() else 1000)
 
-# TODO: version of wait_button_scroll_text() with timeout parameter
-
-# def wait_scroll_text():
-#     timeout = ticks_add(ticks_ms(), 5000 if wrapped_text.on_last_line() else 1000)
-#     while True:
-#         if wrapped_text.max_offset() > 0 and ticks_less(timeout, ticks_ms()):
-#             wrapped_text.scroll_next_line()
-#             wrapped_text.refresh()
-#             timeout = ticks_add(timeout, 5000 if wrapped_text.on_last_line() else 1000)
-
 def fetch_latest_data() -> list:
-    """ Fetch the latest set of "interesting" objects from NASA JPL. """
+    """ Fetch the most "interesting" objects from NASA JPL's Sentry service. """
     wrapped_text.show('Fetching data')
     # Only fetch a few of the most threatening objects.
     ps_min = -3 # minimum threat level
@@ -168,7 +161,7 @@ def fetch_latest_data() -> list:
     return results['data']
 
 def fetch_dummy_data() -> list:
-    """ Return a dummy data set that has one object missing from the actual (recent) data """
+    """ Return a dummy data set - a real query with one object removed. """
     return [
         {"ps_max":"-3.01","des":"1979 XB","id":"bJ79X00B","last_obs":"1979-12-15","v_inf":"23.7606234552547","diameter":"0.66","ts_max":"0","range":"2056-2113","ps_cum":"-2.71","ip":"8.515158e-07","h":"18.54","last_obs_jd":"2444222.5","fullname":"(1979 XB)","n_imp":4},
         {"n_imp":300,"fullname":"(2000 SG344)","last_obs_jd":"2451820.5","ip":"0.002743395186","h":"24.79",
@@ -186,23 +179,24 @@ def check_for_updates(saved_objects: list, latest_objects: list) -> list:
     """
     changed_objects = []
     for object in latest_objects:
-        found = [ obj for obj in saved_objects if obj['id'] == object['id'] ]
+        found = [ old for old in saved_objects if old['id'] == object['id'] ]
         if len(found) == 0:
             # new object
             object['is_new'] = True
             changed_objects.append(object)
         else:
-            saved_object = found[0]
-            if (float(object['ps_cum']) > float(saved_object['ps_cum'])
-                    or (object['ts_max'] != None and saved_object['ts_max'] == None)
-                    or (object['ts_max'] != None and saved_object['ts_max'] != None
-                        and float(object['ts_max']) > float(saved_object['ts_max']))):
+            old_obj = found[0]
+            if (float(object['ps_cum']) > float(old_obj['ps_cum'])
+                    or (object['ts_max'] != None and old_obj['ts_max'] == None)
+                    or (object['ts_max'] != None and old_obj['ts_max'] != None
+                        and float(object['ts_max']) > float(old_obj['ts_max']))):
                 # object threat level has increased
                 object['is_new'] = False
                 changed_objects.append(object)
     return changed_objects
 
 def display_updates(objects: list):
+    """ Display a list of objects that are new or increased threats. """
     wrapped_text.set_text('')
     nl = ''
     for object in objects:
@@ -242,25 +236,27 @@ try:
     if radio.ipv4_address is None:
         wrapped_text.show(f"Connecting to {os.getenv('WIFI_SSID')}")
         radio.connect(os.getenv('WIFI_SSID'), os.getenv('WIFI_PASSWORD'))
-    requests = adafruit_requests.Session(socketpool.SocketPool(radio), ssl.create_default_context())
+    requests = adafruit_requests.Session(socketpool.SocketPool(radio),
+                                         ssl.create_default_context())
 
     # Fetch and display initial data
-    saved_objects = fetch_dummy_data() # DEBUG fetch_latest_data()
+    saved_objects = fetch_dummy_data() # DEBUG: should be [] or fetch_latest_data()
     # TODO: display initial data for the first period?
 
     while True:
         latest_objects = fetch_latest_data()
         updates = check_for_updates(saved_objects, latest_objects)
         saved_objects = latest_objects
-        if not updates:
-            wrapped_text.show('No new threats')
-            # Wait for a while then check again
-            wait_button_scroll_text(button, check_interval)
-        else:
+        if updates:
+            # Display new/increased threat(s) and play an obnoxious alert sound
             display_updates(updates)
             # TODO: Play alert sound
-            # Wait and don't check again until the button is pressed
+            # Wait and keep waiting until the button is pressed
             wait_button_scroll_text(button)
+        else:
+            wrapped_text.show('No new threats')
+            # Wait for a while or until the button is pressed
+            wait_button_scroll_text(button, check_interval)
 
 except Exception as e:
     #print(f"Error: {e}")
@@ -271,6 +267,5 @@ except Exception as e:
     while True:
         if (event := button.events.get()) and event.pressed:
             break
-    supervisor.reload()
-    #while True:
-    #    pass
+    # DEBUG: reload() will allow button to reset after error
+    #supervisor.reload()
