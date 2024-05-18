@@ -120,18 +120,21 @@ class WrappedTextDisplay(displayio.Group):
         display.refresh()
 
 
-def wait_button_scroll_text(button):
+def wait_button_scroll_text(button: keypad.Keys):
     button.events.clear()
-    timeout = ticks_add(ticks_ms(), 5000 if wrapped_text.on_last_line() else 1000)
+    scroll_time = ticks_add(ticks_ms(),
+                            5000 if wrapped_text.on_last_line() else 1000)
     while True:
         if (event := button.events.get()) and event.pressed:
             break
-        if wrapped_text.max_offset() > 0 and ticks_less(timeout, ticks_ms()):
+        if wrapped_text.max_offset() > 0 and ticks_less(scroll_time, ticks_ms()):
             wrapped_text.scroll_next_line()
             wrapped_text.refresh()
-            timeout = ticks_add(timeout, 5000 if wrapped_text.on_last_line() else 1000)
+            scroll_time = ticks_add(scroll_time,
+                                5000 if wrapped_text.on_last_line() else 1000)
 
-# TODO: must be interruptible, or run "until"
+# TODO: version of wait_button_scroll_text() with timeout parameter
+
 # def wait_scroll_text():
 #     timeout = ticks_add(ticks_ms(), 5000 if wrapped_text.on_last_line() else 1000)
 #     while True:
@@ -204,12 +207,15 @@ def display_updates(objects: list):
         wrapped_text.add_text(f"Threat level: {object['ts_max']}")
     wrapped_text.refresh()
 
+
 # MAIN
+
+# Initialize an input pin for the button using keypad.Keys
+# (do this here so it can be used in the except block)
+button = keypad.Keys((pin_switch,), value_when_pressed=False)
+
 try:
     print("asentry started")
-
-    # Initialize an input pin for the button using keypad.Keys
-    button = keypad.Keys((pin_switch,), value_when_pressed=False)
 
     # Initialize the wrapped-text display
     display.root_group = wrapped_text = WrappedTextDisplay()
@@ -247,17 +253,18 @@ try:
 
     # DEBUG
     wait_button_scroll_text(button)
-    while True:
-        pass
+    # while True:
+    #     pass
 
 except Exception as e:
     #print(f"Error: {e}")
     traceback.print_exception(e)
     display.root_group = displayio.CIRCUITPYTHON_TERMINAL
     display.auto_refresh = True
-    # while True:
-    #     if (event1 := keys.events.get()) and event1.pressed:
-    #         break
-    # supervisor.reload()
+    button.events.clear()
     while True:
-        pass
+        if (event := button.events.get()) and event.pressed:
+            break
+    supervisor.reload()
+    #while True:
+    #    pass
