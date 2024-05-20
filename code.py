@@ -13,6 +13,7 @@
 import json
 import os
 import ssl
+import time
 import traceback
 
 import board
@@ -149,7 +150,7 @@ def fetch_latest_data() -> list:
     # Only fetch a few of the most threatening objects.
     ps_min = -3 # minimum threat level
     sRequest = f'https://ssd-api.jpl.nasa.gov/sentry.api?ps-min={ps_min}'
-    ##sRequest = f'https://lenp.net/x'
+    # DEBUG sRequest = f'https://lenp.net/x'
     with requests.get(sRequest) as response:
         if response.status_code != 200:
             raise Exception(f'Bad HTTP response: {response.status_code} {response.reason.decode()}')
@@ -185,6 +186,7 @@ def check_for_updates(saved_objects: list, latest_objects: list) -> list:
             object['is_new'] = True
             changed_objects.append(object)
         else:
+            # previously-seen object
             old_obj = found[0]
             if (float(object['ps_cum']) > float(old_obj['ps_cum'])
                     or (object['ts_max'] != None and old_obj['ts_max'] == None)
@@ -208,14 +210,44 @@ def display_updates(objects: list):
         wrapped_text.add_text(f"Threat level: {object['ts_max']}")
     wrapped_text.refresh()
 
+def display_uptime(start_time: int) -> str:
+    """ Display the current uptime """
+    sec = time.time() - start_time
+    s = 'Uptime: '
+    min = sec // 60
+    sec -= min * 60
+    hr = min // 60
+    min -= hr * 60
+    day = hr // 24
+    hr -= day * 24
+    yr = day // 365
+    day -= yr * 365
+    wk = day // 7
+    day -= wk * 7
+    # TODO
+    if yr > 0:
+        s += f'{yr} yrs '
+    if wk > 0:
+        s += f'{wk} wks '
+    if day > 0:
+        s += f'{day} days '
+    if hr > 0:
+        s += f'{hr} hrs '
+    if min > 0:
+        s += f'{min} mins '
+    s += f'{sec} secs'
+    wrapped_text.add_show(s)
+
 
 # MAIN
 
 # Initialize an input pin for the button using keypad.Keys
-# (do this here so it can be used in the except block)
+# (Do this here so it can be used in the except block)
 button = keypad.Keys((pin_switch,), value_when_pressed=False)
 
 try:
+    start_time = time.time()
+
     print("asentry started")
 
     # Initialize the wrapped-text display
@@ -243,6 +275,7 @@ try:
     saved_objects = fetch_dummy_data() # DEBUG: should be [] or fetch_latest_data()
     # TODO: display initial data for the first period?
 
+    # Periodically fetch the latest data and display results
     while True:
         latest_objects = fetch_latest_data()
         updates = check_for_updates(saved_objects, latest_objects)
@@ -255,10 +288,13 @@ try:
             wait_button_scroll_text(button)
         else:
             wrapped_text.show('No new threats')
+            wrapped_text.add_text('\n\n')
+            display_uptime(start_time)
             # Wait for a while or until the button is pressed
             wait_button_scroll_text(button, check_interval)
 
 except Exception as e:
+    # Error! Display the error message, wait for button press, and reset.
     #print(f"Error: {e}")
     traceback.print_exception(e)
     display.root_group = displayio.CIRCUITPYTHON_TERMINAL
