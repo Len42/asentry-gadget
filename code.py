@@ -15,6 +15,7 @@ import os
 import ssl
 import time
 import traceback
+import gc
 
 import board
 import displayio
@@ -276,7 +277,13 @@ try:
     # TODO: display initial data for the first period?
 
     # Periodically fetch the latest data and display results
+    i = 0 # DEBUG
     while True:
+        # DEBUG
+        i += 1
+        #gc.collect() # Does this actually help?
+        print(f'\nloop: {i} mem: {gc.mem_free()}')
+        # GUBED
         latest_objects = fetch_latest_data()
         updates = check_for_updates(saved_objects, latest_objects)
         saved_objects = latest_objects
