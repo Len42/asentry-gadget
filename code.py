@@ -10,7 +10,6 @@
     See LICENSE file
 """
 # type: ignore
-import json
 import os
 import ssl
 import time
@@ -19,7 +18,6 @@ import gc
 
 import board
 import displayio
-import digitalio
 import keypad
 import socketpool
 import supervisor
@@ -32,9 +30,13 @@ from adafruit_display_text.bitmap_label import Label
 from adafruit_ticks import ticks_add, ticks_less, ticks_ms
 from terminalio import FONT
 import audiocore
+import audiobusio
 
-# Define which GPIO pin the button is connected to
-pin_switch = board.GP14
+# Pin assignments for Pi Pico W
+pin_switch = board.GP14 # pushbutton switch, low = pressed
+pin_i2s_bclk = board.GP26 # I2S bit_clock
+pin_i2s_wsel = board.GP27 # I2S word_select
+pin_i2s_data = board.GP28 # I2S data
 
 # Define the interval between data updates
 check_interval = 1 * 60 * 60 # 1 hour in seconds
@@ -263,7 +265,8 @@ try:
     except:
         pass # Not an error if the file is missing
 
-    # TODO: Initialize I2S audio output
+    # Initialize I2S audio output
+    audio = audiobusio.I2SOut(pin_i2s_bclk, pin_i2s_wsel, pin_i2s_data)
 
     # Initialize the internet connection
     if radio.ipv4_address is None:
