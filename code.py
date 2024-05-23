@@ -251,7 +251,7 @@ button = keypad.Keys((pin_switch,), value_when_pressed=False)
 try:
     start_time = time.time()
 
-    print("asentry started")
+    print('asentry started')
 
     # Initialize the wrapped-text display
     display.root_group = wrapped_text = WrappedTextDisplay()
@@ -301,11 +301,12 @@ try:
             wrapped_text.add_text('\n\n')
             display_uptime(start_time)
             # Wait for a while or until the button is pressed
+            # TODO: Clear the screen after a few secs to avoid OLED burn-in
             wait_button_scroll_text(button, check_interval)
 
 except Exception as e:
     # Error! Display the error message, wait for button press, and reset.
-    #print(f"Error: {e}")
+    #print(f'Error: {e}')
     traceback.print_exception(e)
     display.root_group = displayio.CIRCUITPYTHON_TERMINAL
     display.auto_refresh = True
