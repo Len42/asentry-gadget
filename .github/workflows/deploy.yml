@@ -1,0 +1,26 @@
+name: Publish firmware files
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Package and upload firmware files
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: 'Checkout'
+        uses: actions/checkout@v4
+      
+      - name: 'Package firmware files'
+        run: |
+            cd ${{github.workspace}}/firmware
+            zip -r firmware.zip code.py settings.toml lib
+            gh release upload ${{github.event.release.tag_name}} firmware.zip
+        env:
+          GITHUB_TOKEN: ${{github.TOKEN}}
+        shell: bash
