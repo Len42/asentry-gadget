@@ -41,6 +41,9 @@ pin_i2s_data = board.GP28 # I2S data
 # Define the interval between data updates
 check_interval = 1 * 60 * 60 # 1 hour in seconds
 
+# Define idle display time
+display_time = 10 # TODO: longer
+
 # SSD1306 display setup
 nice_font = FONT
 line_spacing = 12 # in pixels
@@ -128,19 +131,25 @@ class WrappedTextDisplay(displayio.Group):
         display.refresh()
 
 
-def wait_button_scroll_text(button: keypad.Keys, max_time: int = 0):
+def wait_button_scroll_text(button: keypad.Keys, max_time: int = 0, screen_time: int = 0):
     """ Wait while scrolling the text display, until the button is pressed
         or max_time seconds has passed (if specified).
     """
     button.events.clear()
-    scroll_time = ticks_add(ticks_ms(),
-                            5000 if wrapped_text.on_last_line() else 1000)
-    timeout = ticks_add(ticks_ms(), max_time * 1000)
+    now = ticks_ms()
+    scroll_time = ticks_add(now, 5000 if wrapped_text.on_last_line() else 1000)
+    timeout = ticks_add(now, max_time * 1000)
+    screen_timeout = ticks_add(now, screen_time * 1000)
     while True:
-        if max_time and ticks_less(timeout, ticks_ms()):
-            break
         if (event := button.events.get()) and event.pressed:
             break
+        now = ticks_ms()
+        if max_time and ticks_less(timeout, now):
+            break
+        if screen_time and ticks_less(screen_timeout, now):
+            # Clear the screen to avoid burn-in
+            wrapped_text.show('')
+            screen_time = 0
         if wrapped_text.max_offset() > 0 and ticks_less(scroll_time, ticks_ms()):
             wrapped_text.scroll_next_line()
             wrapped_text.refresh()
@@ -302,7 +311,7 @@ try:
             display_uptime(start_time)
             # Wait for a while or until the button is pressed
             # TODO: Clear the screen after a few secs to avoid OLED burn-in
-            wait_button_scroll_text(button, check_interval)
+            wait_button_scroll_text(button, check_interval, display_time)
 
 except Exception as e:
     # Error! Display the error message, wait for button press, and reset.
