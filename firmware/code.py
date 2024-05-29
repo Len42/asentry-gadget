@@ -267,11 +267,17 @@ try:
     wrapped_text.show('asentry')
 
     # Load the alert sound
+    wave_file = None
     alert_wav = None
     try:
-        with open('alert.wav', 'rb') as wave_file:
-            alert_wav = audiocore.WaveFile(wave_file)
+        # with open('alert.wav', 'rb') as wave_file:
+        #     alert_wav = audiocore.WaveFile(wave_file)
+        #alert_wav = audiocore.WaveFile('alert.wav')
+        wave_file = open('alert.wav', 'rb')
+        alert_wav = audiocore.WaveFile(wave_file)
+        print('WAV file loaded') # DEBUG
     except:
+        print(f'Error: {e}') # DEBUG
         pass # Not an error if the file is missing
 
     # Initialize I2S audio output
