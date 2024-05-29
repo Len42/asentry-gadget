@@ -302,7 +302,9 @@ try:
         if updates:
             # Display new/increased threat(s) and play an obnoxious alert sound
             display_updates(updates)
-            # TODO: Play alert sound
+            # Play alert sound
+            if alert_wav:
+                audio.play(alert_wav, loop=False)
             # Wait and keep waiting until the button is pressed
             wait_button_scroll_text(button)
         else:
