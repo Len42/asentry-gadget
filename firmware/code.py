@@ -312,8 +312,9 @@ try:
             wait_button_scroll_text(button, check_interval, display_time)
 
 except Exception as e:
-    # Error! Display the error message, wait for button press, and reset.
-    #print(f'Error: {e}')
+    # Error!
+    # DEBUG: Display the error message and wait for button press
+    # print(f'Error: {e}')
     traceback.print_exception(e)
     display.root_group = displayio.CIRCUITPYTHON_TERMINAL
     display.auto_refresh = True
@@ -321,5 +322,5 @@ except Exception as e:
     while True:
         if (event := button.events.get()) and event.pressed:
             break
-    # DEBUG: reload() will allow button to reset after error
-    #supervisor.reload()
+    # Reset after error
+    # DEBUG: supervisor.reload()
