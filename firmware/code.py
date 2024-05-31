@@ -285,17 +285,13 @@ try:
                                          ssl.create_default_context())
 
     # Fetch and display initial data
-    saved_objects = fetch_dummy_data() # DEBUG: should be [] or fetch_latest_data()
-    # TODO: display initial data for the first period?
+    # TODO: choose how to initialize
+    saved_objects = []
+    #saved_objects = fetch_latest_data()
+    #saved_objects = fetch_dummy_data() # DEBUG
 
     # Periodically fetch the latest data and display results
-    i = 0 # DEBUG
     while True:
-        # DEBUG
-        i += 1
-        #gc.collect() # Does this actually help?
-        print(f'\nloop: {i} mem: {gc.mem_free()}')
-        # GUBED
         latest_objects = fetch_latest_data()
         updates = check_for_updates(saved_objects, latest_objects)
         saved_objects = latest_objects
@@ -312,7 +308,7 @@ try:
             wrapped_text.add_text('\n\n')
             display_uptime(start_time)
             # Wait for a while or until the button is pressed
-            # TODO: Clear the screen after a few secs to avoid OLED burn-in
+            # Clear the screen after a few secs to avoid OLED burn-in
             wait_button_scroll_text(button, check_interval, display_time)
 
 except Exception as e:
