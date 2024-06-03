@@ -137,7 +137,8 @@ def wait_button_scroll_text(button: keypad.Keys, max_time: int = 0, screen_time:
     """
     button.events.clear()
     now = ticks_ms()
-    scroll_time = ticks_add(now, 5000 if wrapped_text.on_last_line() else 1000)
+    scroll_wait_ms = 6000
+    scroll_time = ticks_add(now, scroll_wait_ms if wrapped_text.on_last_line() else 1000)
     timeout = ticks_add(now, max_time * 1000)
     screen_timeout = ticks_add(now, screen_time * 1000)
     while True:
@@ -154,7 +155,7 @@ def wait_button_scroll_text(button: keypad.Keys, max_time: int = 0, screen_time:
             wrapped_text.scroll_next_line()
             wrapped_text.refresh()
             scroll_time = ticks_add(scroll_time,
-                                5000 if wrapped_text.on_last_line() else 1000)
+                                scroll_wait_ms if wrapped_text.on_last_line() else 1000)
 
 def fetch_latest_data() -> list:
     """ Fetch the most "interesting" objects from NASA JPL's Sentry service. """
