@@ -137,6 +137,9 @@ def wait_button_scroll_text(button: keypad.Keys, max_time: int = 0, screen_time:
     """
     button.events.clear()
     now = ticks_ms()
+    # NOTE: The wait time before scrolling is chosen so that my favourite alert
+    # sound has time to finish before scrolling, because updating the display
+    # messes up the audio output.
     scroll_wait_ms = 6000
     scroll_time = ticks_add(now, scroll_wait_ms if wrapped_text.on_last_line() else 1000)
     timeout = ticks_add(now, max_time * 1000)
@@ -223,7 +226,7 @@ def display_updates(objects: list):
         wrapped_text.add_text(f"Threat level: {object['ts_max']}")
     wrapped_text.refresh()
 
-def display_uptime(start_time: int) -> str:
+def display_uptime(start_time: int):
     """ Display the current uptime """
     sec = time.time() - start_time
     s = 'Uptime: '
