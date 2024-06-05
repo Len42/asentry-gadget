@@ -288,11 +288,11 @@ try:
     requests = adafruit_requests.Session(socketpool.SocketPool(radio),
                                          ssl.create_default_context())
 
-    # Fetch and display initial data
+    # Initialize the asteroid data
     # TODO: choose how to initialize
-    saved_objects = []
-    #saved_objects = fetch_latest_data()
-    #saved_objects = fetch_dummy_data() # DEBUG
+    saved_objects = [] # Init to empty - will start with a bunch of alerts
+    #saved_objects = fetch_latest_data() # Init to current - will start with no alerts
+    #saved_objects = fetch_dummy_data() # DEBUG: will start with a single alert
 
     # Periodically fetch the latest data and display results
     while True:
