@@ -162,7 +162,7 @@ def wait_button_scroll_text(button: keypad.Keys, max_time: int = 0, screen_time:
 
 def fetch_latest_data() -> list:
     """ Fetch the most "interesting" objects from NASA JPL's Sentry service. """
-    wrapped_text.show('Fetching data')
+    wrapped_text.show('\n\nFetching data')
     # Only fetch a few of the most threatening objects.
     ps_min = -3 # minimum threat level
     sRequest = f'https://ssd-api.jpl.nasa.gov/sentry.api?ps-min={ps_min}'
@@ -229,6 +229,7 @@ def display_updates(objects: list):
         wrapped_text.add_text(f"Threat level: {object['ts_max']}")
     wrapped_text.refresh()
 
+# TODO: REMOVE
 def display_uptime(start_time: int):
     """ Display the current uptime """
     sec = time.time() - start_time
@@ -311,9 +312,9 @@ try:
             # Wait and keep waiting until the button is pressed
             wait_button_scroll_text(button)
         else:
-            wrapped_text.show('No new threats')
-            wrapped_text.add_text('\n\n')
-            display_uptime(start_time)
+            wrapped_text.show('\n\nNo new threats')
+            # DEBUG: wrapped_text.add_text('\n\n')
+            # DEBUG: display_uptime(start_time)
             # Wait for a while or until the button is pressed
             # Clear the screen after a few secs to avoid OLED burn-in
             wait_button_scroll_text(button, check_interval, display_time)
