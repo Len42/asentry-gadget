@@ -42,7 +42,7 @@ pin_i2s_data = board.GP28 # I2S data
 check_interval = 1 * 60 * 60 # 1 hour in seconds
 
 # Define idle display time
-display_time = 10 # TODO: longer
+display_time = 10
 
 # SSD1306 display setup
 nice_font = FONT
@@ -229,34 +229,6 @@ def display_updates(objects: list):
         wrapped_text.add_text(f"Threat level: {object['ts_max']}")
     wrapped_text.refresh()
 
-# TODO: REMOVE
-def display_uptime(start_time: int):
-    """ Display the current uptime """
-    sec = time.time() - start_time
-    s = 'Uptime: '
-    min = sec // 60
-    sec -= min * 60
-    hr = min // 60
-    min -= hr * 60
-    day = hr // 24
-    hr -= day * 24
-    yr = day // 365
-    day -= yr * 365
-    wk = day // 7
-    day -= wk * 7
-    if yr > 0:
-        s += f'{yr} yrs '
-    if wk > 0:
-        s += f'{wk} wks '
-    if day > 0:
-        s += f'{day} days '
-    if hr > 0:
-        s += f'{hr} hrs '
-    if min > 0:
-        s += f'{min} mins '
-    s += f'{sec} secs'
-    wrapped_text.add_show(s)
-
 
 # MAIN
 
@@ -265,8 +237,6 @@ def display_uptime(start_time: int):
 button = keypad.Keys((pin_switch,), value_when_pressed=False)
 
 try:
-    start_time = time.time()
-
     print('asentry started')
 
     # Initialize the wrapped-text display
@@ -293,10 +263,9 @@ try:
                                          ssl.create_default_context())
 
     # Initialize the asteroid data
-    # TODO: choose how to initialize
     #saved_objects = [] # Init to empty - will start with a bunch of alerts
     #saved_objects = fetch_latest_data() # Init to current - will start with no alerts
-    saved_objects = fetch_dummy_data() # DEBUG: will start with a single alert
+    saved_objects = fetch_dummy_data() # Use dummy data - will start with a single alert
 
     # Periodically fetch the latest data and display results
     while True:
@@ -313,16 +282,12 @@ try:
             wait_button_scroll_text(button)
         else:
             wrapped_text.show('\n\nNo new threats')
-            # DEBUG: wrapped_text.add_text('\n\n')
-            # DEBUG: display_uptime(start_time)
             # Wait for a while or until the button is pressed
             # Clear the screen after a few secs to avoid OLED burn-in
             wait_button_scroll_text(button, check_interval, display_time)
 
 except Exception as e:
-    # Error!
-    # DEBUG: Display the error message and wait for button press
-    # print(f'Error: {e}')
+    # Error! Display the error message and wait for a button press
     traceback.print_exception(e)
     display.root_group = displayio.CIRCUITPYTHON_TERMINAL
     display.auto_refresh = True
@@ -331,4 +296,5 @@ except Exception as e:
         if (event := button.events.get()) and event.pressed:
             break
     # Reset after error
-    # DEBUG: supervisor.reload()
+    # DEBUG: No, don't.
+    # supervisor.reload()
