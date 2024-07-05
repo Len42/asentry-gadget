@@ -163,10 +163,16 @@ def wait_button_scroll_text(button: keypad.Keys, max_time: int = 0, screen_time:
 def fetch_latest_data() -> list:
     """ Fetch the most "interesting" objects from NASA JPL's Sentry service. """
     wrapped_text.show('\n\nFetching data')
-    # Only fetch a few of the most threatening objects.
+    # Use one of these query strings to select the data returned from Sentry:
+    # 1. Fetch a few of the most threatening objects
     ps_min = -3 # minimum threat level
     sRequest = f'https://ssd-api.jpl.nasa.gov/sentry.api?ps-min={ps_min}'
-    # DEBUG sRequest = f'https://lenp.net/x'
+    # 2. Fetch recently-updated objects above a certain threat level
+    #ps_min = -5 # minimum threat level
+    #days = 7 # how many days old
+    #sRequest = f'https://ssd-api.jpl.nasa.gov/sentry.api?ps-min={ps_min}&days={days}'
+    # 3. DEBUG: Invalid request
+    #sRequest = f'https://lenp.net/x'
     with requests.get(sRequest) as response:
         if response.status_code != 200:
             raise Exception(f'Bad HTTP response: {response.status_code} {response.reason.decode()}')
