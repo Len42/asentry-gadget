@@ -12,7 +12,6 @@
 # type: ignore
 import os
 import ssl
-import time
 import traceback
 import gc
 
@@ -163,6 +162,8 @@ def wait_button_scroll_text(button: keypad.Keys, max_time: int = 0, screen_time:
 def fetch_latest_data() -> list:
     """ Fetch the most "interesting" objects from NASA JPL's Sentry service. """
     wrapped_text.show('\n\nFetching data')
+    # Run garbage collection to (hopefully) reduce memory problems due to fragmentation
+    gc.collect()
     # Use one of these query strings to select the data returned from Sentry:
     # 1. Fetch a few of the most threatening objects
     ps_min = -3 # minimum threat level
@@ -183,20 +184,20 @@ def fetch_latest_data() -> list:
         raise Exception('Unexpected data format')
     return results['data']
 
-def fetch_dummy_data() -> list:
-    """ Return a dummy data set - a real query with one object removed. """
-    return [
-        {"h":"18.54","ip":"8.515158e-07","n_imp":4,"fullname":"(1979 XB)","last_obs_jd":"2444222.5","last_obs":"1979-12-15","des":"1979 XB","id":"bJ79X00B","ps_max":"-3.01","ps_cum":"-2.71","range":"2056-2113","ts_max":"0","v_inf":"23.7606234552547","diameter":"0.66"},
-        {"ip":"0.002743395186","h":"24.79","last_obs_jd":"2451820.5","fullname":"(2000 SG344)","n_imp":300,"ps_max":"-3.13","des":"2000 SG344","id":"bK00SY4G","last_obs":"2000-10-03","v_inf":"1.35802744453748","diameter":"0.037","range":"2069-2122","ts_max":"0","ps_cum":"-2.78"},
-        {"n_imp":44,"last_obs_jd":"2454595.5","fullname":"(2008 JL3)","ip":"0.0001658147615","h":"25.31","ts_max":"0","range":"2027-2122","ps_cum":"-2.86","diameter":"0.029","v_inf":"8.41901237821941","des":"2008 JL3","last_obs":"2008-05-09","id":"bK08J03L","ps_max":"-2.86"},
-        {"h":"28.39","ip":"0.102637259069","fullname":"(2010 RF12)","last_obs_jd":"2459815.5","n_imp":70,"ps_max":"-2.98","id":"bK10R12F","last_obs":"2022-08-24","des":"2010 RF12","diameter":"0.0071","v_inf":"5.10001588137266","ps_cum":"-2.98","range":"2095-2122","ts_max":"0"},
-        {"ps_cum":"-2.63","ts_max":"0","range":"2024-2119","diameter":"0.341","v_inf":"17.065343203718","last_obs":"2007-03-21","id":"bK07F03T","des":"2007 FT3","ps_max":"-2.79","n_imp":89,"fullname":"(2007 FT3)","last_obs_jd":"2454180.5","ip":"8.635192e-07","h":"19.97"},
-        {"ps_max":"-1.59","id":"a0101955","des":"101955","last_obs":"2020-10-3.80160","diameter":"0.49","v_inf":"5.9916984432395","ps_cum":"-1.41","ts_max":None,"range":"2178-2290","ip":"0.000571699999999996","h":"20.63","fullname":"101955 Bennu (1999 RQ36)","last_obs_jd":"2459126.3016","n_imp":157},
-        # old:
-        {"ip":"2.859e-05","h":"17.94","n_imp":1,"last_obs_jd":"2459551.5","fullname":"29075 (1950 DA)","des":"29075","last_obs":"2021-12-03","id":"a0029075","ps_max":"-2.05","range":"2880-2880","ts_max":None,"ps_cum":"-2.05","diameter":"1.3","v_inf":"14.10"}
-        # new:
-        # {"des":"29075","id":"a0029075","last_obs":"2023-10-03","ps_max":"-0.93","ps_cum":"-0.93","ts_max":null,"range":"2880-2880","v_inf":"14.10","diameter":"1.3","ip":"3.822e-04","h":"17.94","n_imp":1,"fullname":"29075 (1950 DA)","last_obs_jd":"2460220.5"}
-    ]
+# def fetch_dummy_data() -> list:
+#     """ Return a dummy data set - a real query with one object removed. """
+#     return [
+#         {"h":"18.54","ip":"8.515158e-07","n_imp":4,"fullname":"(1979 XB)","last_obs_jd":"2444222.5","last_obs":"1979-12-15","des":"1979 XB","id":"bJ79X00B","ps_max":"-3.01","ps_cum":"-2.71","range":"2056-2113","ts_max":"0","v_inf":"23.7606234552547","diameter":"0.66"},
+#         {"ip":"0.002743395186","h":"24.79","last_obs_jd":"2451820.5","fullname":"(2000 SG344)","n_imp":300,"ps_max":"-3.13","des":"2000 SG344","id":"bK00SY4G","last_obs":"2000-10-03","v_inf":"1.35802744453748","diameter":"0.037","range":"2069-2122","ts_max":"0","ps_cum":"-2.78"},
+#         {"n_imp":44,"last_obs_jd":"2454595.5","fullname":"(2008 JL3)","ip":"0.0001658147615","h":"25.31","ts_max":"0","range":"2027-2122","ps_cum":"-2.86","diameter":"0.029","v_inf":"8.41901237821941","des":"2008 JL3","last_obs":"2008-05-09","id":"bK08J03L","ps_max":"-2.86"},
+#         {"h":"28.39","ip":"0.102637259069","fullname":"(2010 RF12)","last_obs_jd":"2459815.5","n_imp":70,"ps_max":"-2.98","id":"bK10R12F","last_obs":"2022-08-24","des":"2010 RF12","diameter":"0.0071","v_inf":"5.10001588137266","ps_cum":"-2.98","range":"2095-2122","ts_max":"0"},
+#         {"ps_cum":"-2.63","ts_max":"0","range":"2024-2119","diameter":"0.341","v_inf":"17.065343203718","last_obs":"2007-03-21","id":"bK07F03T","des":"2007 FT3","ps_max":"-2.79","n_imp":89,"fullname":"(2007 FT3)","last_obs_jd":"2454180.5","ip":"8.635192e-07","h":"19.97"},
+#         {"ps_max":"-1.59","id":"a0101955","des":"101955","last_obs":"2020-10-3.80160","diameter":"0.49","v_inf":"5.9916984432395","ps_cum":"-1.41","ts_max":None,"range":"2178-2290","ip":"0.000571699999999996","h":"20.63","fullname":"101955 Bennu (1999 RQ36)","last_obs_jd":"2459126.3016","n_imp":157},
+#         # old:
+#         {"ip":"2.859e-05","h":"17.94","n_imp":1,"last_obs_jd":"2459551.5","fullname":"29075 (1950 DA)","des":"29075","last_obs":"2021-12-03","id":"a0029075","ps_max":"-2.05","range":"2880-2880","ts_max":None,"ps_cum":"-2.05","diameter":"1.3","v_inf":"14.10"}
+#         # new:
+#         # {"des":"29075","id":"a0029075","last_obs":"2023-10-03","ps_max":"-0.93","ps_cum":"-0.93","ts_max":null,"range":"2880-2880","v_inf":"14.10","diameter":"1.3","ip":"3.822e-04","h":"17.94","n_imp":1,"fullname":"29075 (1950 DA)","last_obs_jd":"2460220.5"}
+#     ]
 
 def check_for_updates(saved_objects: list, latest_objects: list) -> list:
     """ Compare the saved data to the latest data and alert the user to any
@@ -269,9 +270,9 @@ try:
                                          ssl.create_default_context())
 
     # Initialize the asteroid data
-    #saved_objects = [] # Init to empty - will start with a bunch of alerts
+    saved_objects = [] # Init to empty - will start with a bunch of alerts
     #saved_objects = fetch_latest_data() # Init to current - will start with no alerts
-    saved_objects = fetch_dummy_data() # Use dummy data - will start with a single alert
+    #saved_objects = fetch_dummy_data() # Use dummy data - will start with a single alert
 
     # Periodically fetch the latest data and display results
     while True:
