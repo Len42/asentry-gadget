@@ -161,7 +161,7 @@ def wait_button_scroll_text(button: keypad.Keys, max_time: int = 0, screen_time:
 
 def fetch_latest_data() -> list:
     """ Fetch the most "interesting" objects from NASA JPL's Sentry service. """
-    wrapped_text.show('\n\nFetching data')
+    wrapped_text.show('\n\nFetching data\n')
     # Run garbage collection to (hopefully) reduce memory problems due to fragmentation
     gc.collect()
     # Use one of these query strings to select the data returned from Sentry:
@@ -266,8 +266,45 @@ try:
     if radio.ipv4_address is None:
         wrapped_text.show(f"Connecting to {os.getenv('WIFI_SSID')}")
         radio.connect(os.getenv('WIFI_SSID'), os.getenv('WIFI_PASSWORD'))
+    ssl_context = ssl.create_default_context()
+    # NOTE: Must load a root certificate for SSL because this particular site
+    # uses a root CA that is not included in CircuitPython's ssl lib by default.
+    # This certificate may need to be updated someday!
+    ssl_cert = '-----BEGIN CERTIFICATE-----\n'\
+        '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\n'\
+        '98OwoX6EyneSMSy4kLGCenROmxMmtNVQZlR4rmA=\n'\
+        '-----END CERTIFICATE-----\n'
+    ssl_context.load_verify_locations(cadata=ssl_cert)
     requests = adafruit_requests.Session(socketpool.SocketPool(radio),
-                                         ssl.create_default_context())
+                                         ssl_context)
 
     # Initialize the asteroid data
     saved_objects = [] # Init to empty - will start with a bunch of alerts
